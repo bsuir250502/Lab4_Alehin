@@ -1,5 +1,5 @@
 OBJ = main.o
-CFLAGS = -Wall -std=c99
+CFLAGS = -Wall -std=c99 -ggdb
 
 all: bin
 
@@ -7,4 +7,4 @@ bin: $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o main
 
 clean:
-	rm bin $(OBJ)
+	rm main $(OBJ)

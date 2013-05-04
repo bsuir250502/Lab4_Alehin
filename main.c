@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #define MAX_NUM 30
-#define MAX_WORD_SIZE 128
+#define MAX_WORD_SIZE 1024
+#define MAX_TREE_DEPTH 1024
+
 struct tree_el {
     char val[MAX_WORD_SIZE];
     char *word;
@@ -10,6 +12,31 @@ struct tree_el {
 };
 
 typedef struct tree_el node;
+
+struct stack_str {
+    char *data;
+    struct stack_str *prev;
+};
+
+typedef struct stack_str stack_el;
+
+stack_el *push(char *content, stack_el * head)
+{
+    stack_el *newhead = (stack_el *) malloc(sizeof(stack_el));
+    newhead->data = content;
+    newhead->prev = head;
+    return newhead;
+}
+
+stack_el *pop(stack_el * head)
+{
+    stack_el *prev_elem;
+    if (!head)
+        return 0;
+    prev_elem = head->prev;
+    free(head);
+    return prev_elem;
+}
 
 void insert(node ** tree, node * item)
 {
@@ -23,32 +50,43 @@ void insert(node ** tree, node * item)
         insert(&(*tree)->right, item);
 }
 
-char *max_word(node * tree)
+void max_word(stack_el * stack_head)
 {
-    static char *max = "";
-    if (tree->left)
-        max_word(tree->left);
-    if (strlen(tree->word) > strlen(max))
-        max = tree->word;
-    if (tree->right)
-        max_word(tree->right);
-    if (strlen(tree->word) > strlen(max))
-        max = tree->word;
-    return max;
+    static char *max;
+    if (!stack_head)
+        printf("Max word is %s", max);
+    else
+        max = "";
+    while (stack_head) {
+        if (strlen(stack_head->data) > strlen(max))
+            max = stack_head->data;
+        stack_head = stack_head->prev;
+    }
 }
 
-int depth(node * tree, int c)
+int min_subtree(node * tree, int c)
 {
-    static int max;
-    if (!c)
-        max = 0;
-    if (c > max)
-        max = c;
-    if (tree->left)
-        depth(tree->left, c + 1);
-    if (tree->right)
-        depth(tree->right, c + 1);
-    return max;
+    static int min = MAX_TREE_DEPTH;
+    static stack_el *stack_head = NULL;
+    if (tree->left) {
+        stack_head = push(tree->word, stack_head);
+        min_subtree(tree->left, c + 1);
+    }
+    if (tree->right) {
+        stack_head = push(tree->word, stack_head);
+        min_subtree(tree->right, c + 1);
+    }
+    if (c < min && !tree->left && !tree->right) {
+        stack_head = push(tree->word, stack_head);
+        max_word(stack_head);
+        min = c;
+    }
+    stack_head = pop(stack_head);
+    if (!c) {
+        stack_head = pop(stack_head);
+        max_word(stack_head);
+    }
+    return min;
 }
 
 void free_tree(node * tree)
@@ -97,13 +135,7 @@ int main(int argc, char *argv[])
         fgets(curr->word, MAX_WORD_SIZE, stdin);
         insert(&root, curr);
     }
-    if (root->left && root->right)
-        if (depth(root->left, 0) <= depth(root->right, 0))
-            printf("Max word is %s", max_word(root->left));
-        else
-            printf("Max word is %s", max_word(root->right));
-    else
-        puts("empty subtree");
+    printf("Min subtree depth - %d\n", min_subtree(root, 0) + 1);
     free_tree(root);
     return 0;
 }
